@@ -13,7 +13,7 @@ void usage() {
 	puts("-i [interface]  Set interface (default: wlan0)");
 	puts("-e [essid]      Set essid");
 	puts("-f [freq]       Set frequency");
-	puts("-k [key]        Set key/passphrase");
+	puts("-k [key]        Set key/passphrase\n");
 
 	puts("-s              Scan access points");
 	puts("-I              Show interface info\n");
@@ -63,7 +63,7 @@ void info(char *ifname) {
 void connect(char *ifname, char *essid, int type) {
 	system("killall dhcpcd 2> /dev/null");
 	char *cmdline = "";
-	cmdline = malloc(80);
+	cmdline = malloc(93);
 	size_t s1 = strlen(ifname);
 	size_t s2 = strlen(essid);
 
@@ -87,8 +87,21 @@ void connect(char *ifname, char *essid, int type) {
 		system(cmdline);
 	}
 	else if (type == 1) {
+		snprintf(cmdline, s1+s2+31, "iw dev %s connect -w %s keys 12345", ifname, essid);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
+		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
 	}
 	else if (type == 2) {
+		snprintf(cmdline, s1+s2+53, "wpa_supplicant -B -i %s -c <(wpa_passphrase %s 12345678)",
+									ifname, essid);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
+		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
 	}
 	else {
 		snprintf(cmdline, s1+s2+24, "iw dev %s ibss join %s 2457", ifname, essid);
