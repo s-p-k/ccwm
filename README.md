@@ -7,8 +7,7 @@ ccwm allows you to easily connect to any wlan access point.
 There is no need for configuration.
 This is work in progress but its already functional.
 
-*Command line options:*
-
+**Command line options:**
 Usage: ccwm [options] -o/-a/-w/-W
 
 -h              Show help
