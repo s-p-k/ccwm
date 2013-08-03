@@ -16,6 +16,7 @@ void usage() {
 	puts("-k [key]        Set key/passphrase\n");
 
 	puts("-s              Scan access points");
+	puts("-S              Scan access points verbosely");
 	puts("-I              Show interface info\n");
 
 	puts("-o              Connect to ESS (open) access point");
@@ -34,13 +35,22 @@ void ifup(char *ifname) {
 	free(cmdline);
 }
 
-void scan(char *ifname) {
+void scan(char *ifname, int type) {
 	char *cmdline = "";
 	cmdline = malloc(33);
 	size_t s1 = strlen(ifname);
-	snprintf(cmdline, s1+13, "iw dev %s scan", ifname);
-	printf("debug: %s\n", cmdline);
-	system(cmdline);
+
+	if (type == 0) {
+		snprintf(cmdline, s1+31, "iw dev %s scan | awk -f scan.awk", ifname);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
+	}
+	else {
+		snprintf(cmdline, s1+13, "iw dev %s scan", ifname);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
+	}
+
 	free(cmdline);
 }
 
@@ -127,7 +137,7 @@ int main(int argc, char *argv[]) {
 		usage();
 	}
 
-	while ((opt = getopt(argc, argv, "IsowWahi:e:k:f:")) != -1) {
+	while ((opt = getopt(argc, argv, "IsSowWahi:e:k:f:")) != -1) {
 		switch (opt) {
 			case 'i':
 				ifname = optarg;
@@ -147,7 +157,11 @@ int main(int argc, char *argv[]) {
 				break;
 			case 's':
 				ifup(ifname);
-				scan(ifname);
+				scan(ifname, 0);
+				break;
+			case 'S':
+				ifup(ifname);
+				scan(ifname, 1);
 				break;
 			case 'o':
 				ifup(ifname);
