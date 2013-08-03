@@ -9,10 +9,19 @@ void usage() {
 	printf("Usage: %s [options]\n\n", global_argv[0]);
 
 	puts("-h              Show help\n");
+
 	puts("-i [interface]  Set interface (default: wlan0)");
 	puts("-e [essid]      Set essid");
-	puts("-s              Scan access points\n");
-	puts("-I              Show info");
+	puts("-f [freq]       Set frequency");
+	puts("-k [key]        Set key/passphrase");
+
+	puts("-s              Scan access points");
+	puts("-I              Show interface info\n");
+
+	puts("-o              Connect to ESS (open) access point");
+	puts("-a              Connect to IBSS (ad-hoc) access point");
+	puts("-w              Connect to WEP encrypted access point");
+	puts("-W              Connect to WPA encrypted access point");
 }
 
 void ifup(char *ifname) {
@@ -51,14 +60,45 @@ void info(char *ifname) {
 	free(cmdline);
 }
 
-void connect(char *ifname, char *essid) {
+void connect(char *ifname, char *essid, int type) {
+	system("killall dhcpcd 2> /dev/null");
 	char *cmdline = "";
-	cmdline = malloc(36);
+	cmdline = malloc(80);
 	size_t s1 = strlen(ifname);
 	size_t s2 = strlen(essid);
-	snprintf(cmdline, s1+16, "ip link set %s up", ifname);
-	printf("debug: %s\n", cmdline);
-	system(cmdline);
+
+	if (type < 3) {
+		snprintf(cmdline, s1+25, "iw dev %s set type managed", ifname);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
+	}
+	else {
+		snprintf(cmdline, s1+22, "iw dev %s set type ibss", ifname);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
+	}
+
+	if (type == 0) {
+		snprintf(cmdline, s1+s2+20, "iw dev %s connect -w %s", ifname, essid);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
+		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
+	}
+	else if (type == 1) {
+	}
+	else if (type == 2) {
+	}
+	else {
+		snprintf(cmdline, s1+s2+24, "iw dev %s ibss join %s 2457", ifname, essid);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
+		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
+		printf("debug: %s\n", cmdline);
+		system(cmdline);
+	}
+
 	free(cmdline);
 }
 
@@ -66,15 +106,27 @@ int main(int argc, char *argv[]) {
 	global_argv = argv;
 	int opt;
 	char *ifname = "wlan0";
+	char *essid = "";
+	char *key = "";
+	char *freq = "";
 
 	if (argc <= 1) {
 		usage();
 	}
 
-	while ((opt = getopt(argc, argv, "hsIi:")) != -1) {
+	while ((opt = getopt(argc, argv, "IsowWahi:e:k:f:")) != -1) {
 		switch (opt) {
 			case 'i':
 				ifname = optarg;
+				break;
+			case 'e':
+				essid = optarg;
+				break;
+			case 'k':
+				key = optarg;
+				break;
+			case 'f':
+				freq = optarg;
 				break;
 			case 'I':
 				ifup(ifname);
@@ -84,11 +136,28 @@ int main(int argc, char *argv[]) {
 				ifup(ifname);
 				scan(ifname);
 				break;
+			case 'o':
+				ifup(ifname);
+				connect(ifname, essid, 0);
+				break;
+			case 'w':
+				ifup(ifname);
+				connect(ifname, essid, 1);
+				break;
+			case 'W':
+				ifup(ifname);
+				connect(ifname, essid, 2);
+				break;
+			case 'a':
+				ifup(ifname);
+				connect(ifname, essid, 3);
+				break;
 			case 'h':
 			default:
 				usage();
 				break;
 		}
 	}
+
 	return 0;
 }

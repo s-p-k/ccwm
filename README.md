@@ -3,4 +3,6 @@ ccwm
 
 C CLI Wlan Manager
 
-Draft of ccwm. Not usable yet! Idea is to create wlan manager with easy connection to all kinds of networks.
+Work in progress. Not usable yet!
+The goal is to create consistent cli wlan manager
+to handle connecting to all networks without any configuration.
