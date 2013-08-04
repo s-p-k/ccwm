@@ -1,20 +1,24 @@
 C CLI Wlan Manager
 
-ccwm allows you to easily connect to any wlan access point.
+ccwm allows you to easily connect to any wlan network.
 There is no need for configuration.
-This is work in progress but its already functional.
-It uses iproute2, iw and dhcpcd at the moment but im planning
-to make it use libnl and nl80211 as much as possible.
+Uses iproute2, iw, wpa_supplicant and dhcpcd.
 
 
 Features
 
 - Scan access points with nice output
 - Connect to ESS access point (Open/WEP/WPA)
-- Join to IBSS network (Open)
+- Join to IBSS network (Open/WEP)
 - Show interface info
 
 
 Changelog
 
-03.08.2013 - First functional release.
+04.08.2013
+Join to WEP encrypted IBSS
+Cleaned up command line options
+Cleaned up code
+
+03.08.2013
+First functional release.

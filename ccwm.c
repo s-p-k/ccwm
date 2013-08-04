@@ -99,7 +99,7 @@ void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 		system(cmdline);
 	}
 	else if (type == 1) {
-		snprintf(cmdline, s1+s2+s4+26, "iw dev %s connect -w %s keys %s", ifname, essid, key);
+		snprintf(cmdline, s1+s2+s4+26, "iw dev %s connect -w %s key %s", ifname, essid, key);
 		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
@@ -108,7 +108,15 @@ void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 	}
 	else if (type == 2) {
 		snprintf(cmdline, s1+s2+s4+45, "wpa_supplicant -B -i %s -c <(wpa_passphrase %s %s)",
-									ifname, essid, key);
+				ifname, essid, key);
+		printf("cmd: %s\n", cmdline);
+		system(cmdline);
+		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
+		printf("cmd: %s\n", cmdline);
+		system(cmdline);
+	}
+	else if (type == 3) {
+		snprintf(cmdline, s1+s2+s3+20, "iw dev %s ibss join %s %s", ifname, essid, freq);
 		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
@@ -116,7 +124,8 @@ void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 		system(cmdline);
 	}
 	else {
-		snprintf(cmdline, s1+s2+s3+20, "iw dev %s ibss join %s %s", ifname, essid, freq);
+		snprintf(cmdline, s1+s2+s3+s4+25, "iw dev %s ibss join %s %s key %s",
+				ifname, essid, freq, key);
 		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
@@ -198,8 +207,17 @@ int main(int argc, char *argv[]) {
 					printf("You must specify ssid and freq!\n");
 					break;
 				}
-				ifup(ifname);
-				connect(ifname, essid, freq, key, 3);
+				else if (key[0] != '\0') {
+					ifup(ifname);
+					connect(ifname, essid, freq, key, 4);
+				}
+				else if (passphrase[0] != '\0') {
+					printf("Join to WPA encrypted IBSS not yet supported!\n");
+				}
+				else {
+					ifup(ifname);
+					connect(ifname, essid, freq, key, 3);
+				}
 				break;
 			case 'h':
 			default:
