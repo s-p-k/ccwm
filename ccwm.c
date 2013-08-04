@@ -7,23 +7,22 @@
 char **global_argv;
 
 void usage() {
-	printf("Usage: %s [options] -o/-a/-w/-W\n\n", global_argv[0]);
+	printf("Usage: %s [options] -c/-j\n\n", global_argv[0]);
 
 	puts("-h              Show help\n");
 
 	puts("-i [interface]  Set interface (default: wlan0)");
 	puts("-e [ssid]       Set SSID");
 	puts("-f [freq]       Set frequency");
-	puts("-k [key]        Set key/passphrase\n");
+	puts("-w [key]        Set WEP key");
+	puts("-W [passphrase] Set WPA passphrase\n");
 
 	puts("-s              Scan access points");
 	puts("-S              Scan access points verbosely");
 	puts("-I              Show interface info\n");
 
-	puts("-o              Connect to ESS access point");
-	puts("-a              Connect to IBSS access point");
-	puts("-w              Connect to WEP encrypted access point");
-	puts("-W              Connect to WPA encrypted access point");
+	puts("-c              Connect to ESS access point");
+	puts("-j              Join to IBSS network");
 }
 
 void ifup(char *ifname) {
@@ -135,6 +134,7 @@ int main(int argc, char *argv[]) {
 	char *essid = "";
 	char *freq = "";
 	char *key = "";
+	char *passphrase = "";
 
 	uid_t uid=getuid();
 	if (uid != 0) {
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
 		usage();
 	}
 
-	while ((opt = getopt(argc, argv, "IsSowWahi:e:f:k:")) != -1) {
+	while ((opt = getopt(argc, argv, "IsScjhi:e:f:w:W:")) != -1) {
 		switch (opt) {
 			case 'i':
 				ifname = optarg;
@@ -157,8 +157,11 @@ int main(int argc, char *argv[]) {
 			case 'f':
 				freq = optarg;
 				break;
-			case 'k':
+			case 'w':
 				key = optarg;
+				break;
+			case 'W':
+				passphrase = optarg;
 				break;
 			case 'I':
 				ifup(ifname);
@@ -172,31 +175,25 @@ int main(int argc, char *argv[]) {
 				ifup(ifname);
 				scan(ifname, 1);
 				break;
-			case 'o':
+			case 'c':
 				if (essid[0] == '\0') {
 					printf("You must specify ssid!\n");
 					break;
 				}
-				ifup(ifname);
-				connect(ifname, essid, freq, key, 0);
-				break;
-			case 'w':
-				if (essid[0] == '\0' || key[0] == '\0') {
-					printf("You must specify ssid and key!\n");
-					break;
+				else if (key[0] != '\0') {
+					ifup(ifname);
+					connect(ifname, essid, freq, key, 1);
 				}
-				ifup(ifname);
-				connect(ifname, essid, freq, key, 1);
-				break;
-			case 'W':
-				if (essid[0] == '\0' || key[0] == '\0') {
-					printf("You must specify ssid and passphrase!\n");
-					break;
+				else if (passphrase[0] != '\0') {
+					ifup(ifname);
+					connect(ifname, essid, freq, passphrase, 2);
 				}
-				ifup(ifname);
-				connect(ifname, essid, freq, key, 2);
+				else {
+					ifup(ifname);
+					connect(ifname, essid, freq, key, 0);
+				}
 				break;
-			case 'a':
+			case 'j':
 				if (essid[0] == '\0' || freq[0] == '\0') {
 					printf("You must specify ssid and freq!\n");
 					break;
