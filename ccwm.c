@@ -72,6 +72,7 @@ void info(char *ifname) {
 
 void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 	system("killall dhcpcd 2> /dev/null");
+	printf("cmd: killall dhcpcd 2> /dev/null\n");
 	char *cmdline = "";
 	cmdline = malloc(100);
 	size_t s1 = strlen(ifname);
@@ -139,6 +140,8 @@ void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 int main(int argc, char *argv[]) {
 	global_argv = argv;
 	int opt;
+	int task = 0;
+	
 	char *ifname = "wlan0";
 	char *essid = "";
 	char *freq = "";
@@ -185,44 +188,49 @@ int main(int argc, char *argv[]) {
 				scan(ifname, 1);
 				break;
 			case 'c':
-				if (essid[0] == '\0') {
-					printf("You must specify ssid!\n");
-					break;
-				}
-				else if (key[0] != '\0') {
-					ifup(ifname);
-					connect(ifname, essid, freq, key, 1);
-				}
-				else if (passphrase[0] != '\0') {
-					ifup(ifname);
-					connect(ifname, essid, freq, passphrase, 2);
-				}
-				else {
-					ifup(ifname);
-					connect(ifname, essid, freq, key, 0);
-				}
+				task = 1;
 				break;
 			case 'j':
-				if (essid[0] == '\0' || freq[0] == '\0') {
-					printf("You must specify ssid and freq!\n");
-					break;
-				}
-				else if (key[0] != '\0') {
-					ifup(ifname);
-					connect(ifname, essid, freq, key, 4);
-				}
-				else if (passphrase[0] != '\0') {
-					printf("Join to WPA encrypted IBSS not yet supported!\n");
-				}
-				else {
-					ifup(ifname);
-					connect(ifname, essid, freq, key, 3);
-				}
+				task = 2;
 				break;
 			case 'h':
 			default:
 				usage();
 				break;
+		}
+	}
+
+	if (task == 1) {
+		if (essid[0] == '\0') {
+			printf("You must specify ssid!\n");
+		}
+		else if (key[0] != '\0') {
+			ifup(ifname);
+			connect(ifname, essid, freq, key, 1);
+		}
+		else if (passphrase[0] != '\0') {
+			ifup(ifname);
+			connect(ifname, essid, freq, passphrase, 2);
+		}
+		else {
+			ifup(ifname);
+			connect(ifname, essid, freq, key, 0);
+		}
+	}
+	else if (task == 2) {
+		if (essid[0] == '\0' || freq[0] == '\0') {
+			printf("You must specify ssid and freq!\n");
+		}
+		else if (key[0] != '\0') {
+			ifup(ifname);
+			connect(ifname, essid, freq, key, 4);
+		}
+		else if (passphrase[0] != '\0') {
+			printf("Join to WPA encrypted IBSS not yet supported!\n");
+		}
+		else {
+			ifup(ifname);
+			connect(ifname, essid, freq, key, 3);
 		}
 	}
 

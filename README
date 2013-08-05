@@ -16,9 +16,9 @@ Features
 Changelog
 
 04.08.2013
-Join to WEP encrypted IBSS
-Cleaned up command line options
-Cleaned up code
+Join to WEP encrypted IBSS.
+Cleaned up command line options.
+Cleaned up code.
 
 03.08.2013
 First functional release.
