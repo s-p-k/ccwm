@@ -9,7 +9,7 @@
 char **global_argv;
 
 void usage() {
-	printf("Usage: %s [options] -c/-j\n\n", global_argv[0]);
+	printf("Usage: %s [options]\n\n", global_argv[0]);
 
 	puts("-h              Show help\n");
 
@@ -23,7 +23,7 @@ void usage() {
 	puts("-S              Scan access points verbosely");
 	puts("-I              Show interface info\n");
 
-	puts("-c              Connect to ESS access point");
+	puts("-c              Connect to ESS access point (default if ssid is set)");
 	puts("-j              Join to IBSS network");
 }
 
@@ -58,7 +58,8 @@ void scan(char *ifname, int type) {
 		FILE *fp;
 		char line[LINE_MAX];
 
-		fp = popen("iw wlan0 scan", "r");
+		snprintf(cmdline, s1+13, "iw dev %s scan", ifname);
+		fp = popen(cmdline, "r");
 		if (fp == NULL)
 			puts("error");
 
@@ -156,12 +157,15 @@ void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
 		system(cmdline);
 	}
-	else {
+	else if (type == 4) {
 		snprintf(cmdline, s1+s2+s3+s4+25, "iw dev %s ibss join %s %s key %s",
 				ifname, essid, freq, key);
 		system(cmdline);
 		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
 		system(cmdline);
+	}
+	else if (type == 5) {
+		printf("Join to WPA encrypted IBSS not yet supported!\n");
 	}
 
 	free(cmdline);
@@ -186,9 +190,10 @@ int main(int argc, char *argv[]) {
 
 	if (argc <= 1) {
 		usage();
+		return 0;
 	}
 
-	while ((opt = getopt(argc, argv, "IsScjhi:e:f:w:W:")) != -1) {
+	while ((opt = getopt(argc, argv, "sSIcjhi:e:f:w:W:")) != -1) {
 		switch (opt) {
 			case 'i':
 				ifname = optarg;
@@ -205,32 +210,46 @@ int main(int argc, char *argv[]) {
 			case 'W':
 				passphrase = optarg;
 				break;
-			case 'I':
-				ifup(ifname);
-				info(ifname);
-				break;
 			case 's':
-				ifup(ifname);
-				scan(ifname, 0);
-				break;
-			case 'S':
-				ifup(ifname);
-				scan(ifname, 1);
-				break;
-			case 'c':
 				task = 1;
 				break;
-			case 'j':
+			case 'S':
 				task = 2;
+				break;
+			case 'I':
+				task = 3;
+				break;
+			case 'c':
+				task = 4;
+				break;
+			case 'j':
+				task = 5;
 				break;
 			case 'h':
 			default:
 				usage();
+				return 0;
 				break;
 		}
 	}
 
+	if (task == 0 && essid[0] != '\0') {
+		task = 4;
+	}
+
 	if (task == 1) {
+		ifup(ifname);
+		scan(ifname, 0);
+	}
+	else if (task == 2) {
+		ifup(ifname);
+		scan(ifname, 1);
+	}
+	else if (task == 3) {
+		ifup(ifname);
+		info(ifname);
+	}
+	else if (task == 4) {
 		if (essid[0] == '\0') {
 			printf("You must specify ssid!\n");
 		}
@@ -247,7 +266,7 @@ int main(int argc, char *argv[]) {
 			connect(ifname, essid, freq, key, 0);
 		}
 	}
-	else if (task == 2) {
+	else if (task == 5) {
 		if (essid[0] == '\0' || freq[0] == '\0') {
 			printf("You must specify ssid and freq!\n");
 		}
@@ -256,7 +275,8 @@ int main(int argc, char *argv[]) {
 			connect(ifname, essid, freq, key, 4);
 		}
 		else if (passphrase[0] != '\0') {
-			printf("Join to WPA encrypted IBSS not yet supported!\n");
+			ifup(ifname);
+			connect(ifname, essid, freq, key, 5);
 		}
 		else {
 			ifup(ifname);
