@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <string.h>
+
+#define LINE_MAX 100
 
 char **global_argv;
 
@@ -30,7 +32,19 @@ void ifup(char *ifname) {
 	cmdline = malloc(36);
 	size_t s1 = strlen(ifname);
 	snprintf(cmdline, s1+16, "ip link set %s up", ifname);
-	printf("cmd: %s\n", cmdline);
+	system(cmdline);
+	free(cmdline);
+}
+
+void info(char *ifname) {
+	char *cmdline = "";
+	cmdline = malloc(43);
+	size_t s1 = strlen(ifname);
+	snprintf(cmdline, s1+13, "iw dev %s info", ifname);
+	system(cmdline);
+	snprintf(cmdline, s1+13, "iw dev %s link", ifname);
+	system(cmdline);
+	snprintf(cmdline, s1+23, "iw dev %s get power_save", ifname);
 	system(cmdline);
 	free(cmdline);
 }
@@ -41,38 +55,66 @@ void scan(char *ifname, int type) {
 	size_t s1 = strlen(ifname);
 
 	if (type == 0) {
-		snprintf(cmdline, s1+31, "iw dev %s scan | awk -f scan.awk", ifname);
-		printf("cmd: %s\n", cmdline);
-		system(cmdline);
+		FILE *fp;
+		char line[LINE_MAX];
+
+		fp = popen("iw wlan0 scan", "r");
+		if (fp == NULL)
+			puts("error");
+
+		char aparray[20][5][100];
+		int specnumber = 0;
+		int apnumber = -1;
+		int x = 0;
+		while (fgets(line, LINE_MAX, fp) != NULL) {
+			if (line[0] == 'B' && line[1] == 'S' && line[2] == 'S' && line[3] == ' ') {
+				apnumber++;
+				specnumber = 0;
+				x = 0;
+			}
+
+			if (strstr(line, "\tSSID: ") || strstr(line, "\tfreq: ") ||
+					strstr(line, "\tsignal: ") || strstr(line, "\tcapability: ")) {
+				memmove (line, line+1, strlen (line));
+				strcpy(aparray[apnumber][specnumber], line);
+				specnumber++;
+			}
+			else if (x < 1) {
+				strcpy(aparray[apnumber][4], "Encryption: Open\n");
+				x++;
+			}
+			else if (strstr(line, "\tWPA:\t")) {
+				strcpy(aparray[apnumber][specnumber], "Encryption: WPA\n");
+				specnumber++;
+			}
+			else if (strstr(line, "\tWEP:\t")) {
+				strcpy(aparray[apnumber][specnumber], "Encryption: WEP\n");
+				specnumber++;
+			}
+		}
+
+		pclose(fp);
+
+		int i = 0;
+		int y = 0;
+		for (i = 0; i < apnumber+1; i++) {
+			if (y++ > 0)
+				puts("");
+			printf("%s%s%s%s%s",
+					aparray[i][3], aparray[i][1], aparray[i][0], aparray[i][2], aparray[i][4]);
+		}
+
 	}
 	else {
 		snprintf(cmdline, s1+13, "iw dev %s scan", ifname);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 	}
 
-	free(cmdline);
-}
-
-void info(char *ifname) {
-	char *cmdline = "";
-	cmdline = malloc(43);
-	size_t s1 = strlen(ifname);
-	snprintf(cmdline, s1+13, "iw dev %s info", ifname);
-	printf("cmd: %s\n", cmdline);
-	system(cmdline);
-	snprintf(cmdline, s1+13, "iw dev %s link", ifname);
-	printf("cmd: %s\n", cmdline);
-	system(cmdline);
-	snprintf(cmdline, s1+23, "iw dev %s get power_save", ifname);
-	printf("cmd: %s\n", cmdline);
-	system(cmdline);
 	free(cmdline);
 }
 
 void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 	system("killall dhcpcd 2> /dev/null");
-	printf("cmd: killall dhcpcd 2> /dev/null\n");
 	char *cmdline = "";
 	cmdline = malloc(100);
 	size_t s1 = strlen(ifname);
@@ -82,55 +124,43 @@ void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 
 	if (type < 3) {
 		snprintf(cmdline, s1+25, "iw dev %s set type managed", ifname);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 	}
 	else {
 		snprintf(cmdline, s1+22, "iw dev %s set type ibss", ifname);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 	}
 
 	if (type == 0) {
 		snprintf(cmdline, s1+s2+20, "iw dev %s connect -w %s", ifname, essid);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 	}
 	else if (type == 1) {
 		snprintf(cmdline, s1+s2+s4+26, "iw dev %s connect -w %s key %s", ifname, essid, key);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 	}
 	else if (type == 2) {
 		snprintf(cmdline, s1+s2+s4+45, "wpa_supplicant -B -i %s -c <(wpa_passphrase %s %s)",
 				ifname, essid, key);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 	}
 	else if (type == 3) {
 		snprintf(cmdline, s1+s2+s3+20, "iw dev %s ibss join %s %s", ifname, essid, freq);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 	}
 	else {
 		snprintf(cmdline, s1+s2+s3+s4+25, "iw dev %s ibss join %s %s key %s",
 				ifname, essid, freq, key);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 		snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
-		printf("cmd: %s\n", cmdline);
 		system(cmdline);
 	}
 
@@ -141,7 +171,7 @@ int main(int argc, char *argv[]) {
 	global_argv = argv;
 	int opt;
 	int task = 0;
-	
+
 	char *ifname = "wlan0";
 	char *essid = "";
 	char *freq = "";

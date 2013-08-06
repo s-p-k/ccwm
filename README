@@ -15,6 +15,11 @@ Features
 
 Changelog
 
+06.08.2013
+Scan parsing rewrite in C.
+Removed debug outputs.
+Makefile improvements.
+
 04.08.2013
 Join to WEP encrypted IBSS.
 Cleaned up command line options.
