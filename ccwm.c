@@ -20,22 +20,22 @@ void usage(char *progname) {
 	puts("-I              Show interface info\n");
 
 	puts("-c              Connect to ESS access point (default if ssid is set)");
-	puts("-j              Join to IBSS network");
+	puts("-j              Join to IBSS network (default if freq is set)");
 }
 
 void ifup(char *ifname) {
-	char *cmdline = "";
-	cmdline = malloc(36);
+	char *cmdline = malloc(36);
 	size_t s1 = strlen(ifname);
+
 	snprintf(cmdline, s1+16, "ip link set %s up", ifname);
 	system(cmdline);
 	free(cmdline);
 }
 
 void info(char *ifname) {
-	char *cmdline = "";
-	cmdline = malloc(43);
+	char *cmdline = malloc(43);
 	size_t s1 = strlen(ifname);
+
 	snprintf(cmdline, s1+13, "iw dev %s info", ifname);
 	system(cmdline);
 	snprintf(cmdline, s1+13, "iw dev %s link", ifname);
@@ -46,57 +46,51 @@ void info(char *ifname) {
 }
 
 void scan(char *ifname, int type) {
-	ifup(ifname);
-	char *cmdline = "";
-	cmdline = malloc(33);
+	char *cmdline = malloc(33);
 	size_t s1 = strlen(ifname);
+	FILE *fp;
+	char line[100];
+	char aparray[20][5][100];
+	int apnumber = -1;
+	int specnumber = 0;
+	int i = 0;
+
+	ifup(ifname);
 
 	if (type == 0) {
-		FILE *fp;
-		char line[100];
-
 		snprintf(cmdline, s1+13, "iw dev %s scan", ifname);
 		fp = popen(cmdline, "r");
 		if (fp == NULL)
 			puts("error");
 
-		char aparray[20][5][100];
-		int specnumber = 0;
-		int apnumber = -1;
-		int x = 0;
 		while (fgets(line, 100, fp) != NULL) {
 			if (line[0] == 'B' && line[1] == 'S' && line[2] == 'S' && line[3] == ' ') {
 				apnumber++;
 				specnumber = 0;
-				x = 0;
+				i = 0;
 			}
-
-			if (strstr(line, "\tSSID: ") || strstr(line, "\tfreq: ") ||
+			else if (strstr(line, "\tSSID: ") || strstr(line, "\tfreq: ") ||
 					strstr(line, "\tsignal: ") || strstr(line, "\tcapability: ")) {
 				memmove (line, line+1, strlen (line));
 				strcpy(aparray[apnumber][specnumber], line);
 				specnumber++;
 			}
-			else if (x < 1) {
+			else if (i < 1) {
 				strcpy(aparray[apnumber][4], "Encryption: Open\n");
-				x++;
+				i++;
 			}
 			else if (strstr(line, "\tWPA:\t")) {
 				strcpy(aparray[apnumber][specnumber], "Encryption: WPA\n");
-				specnumber++;
 			}
 			else if (strstr(line, "\tWEP:\t")) {
 				strcpy(aparray[apnumber][specnumber], "Encryption: WEP\n");
-				specnumber++;
 			}
 		}
 
 		pclose(fp);
 
-		int i = 0;
-		int y = 0;
 		for (i = 0; i < apnumber+1; i++) {
-			if (y++ > 0)
+			if (i > 0)
 				puts("");
 			printf("%s%s%s%s%s",
 				aparray[i][3], aparray[i][1], aparray[i][0], aparray[i][2], aparray[i][4]);
@@ -111,14 +105,14 @@ void scan(char *ifname, int type) {
 }
 
 void connect(char *ifname, char *essid, char *freq, char *key, int type) {
-	ifup(ifname);
-	system("killall dhcpcd 2> /dev/null");
-	char *cmdline = "";
-	cmdline = malloc(100);
+	char *cmdline = malloc(100);
 	size_t s1 = strlen(ifname);
 	size_t s2 = strlen(essid);
 	size_t s3 = strlen(freq);
 	size_t s4 = strlen(key);
+
+	ifup(ifname);
+	system("killall dhcpcd 2> /dev/null");
 
 	if (type < 3)
 		snprintf(cmdline, s1+25, "iw dev %s set type managed", ifname);
@@ -151,6 +145,11 @@ void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 	}
 	else if (type == 5) {
 		printf("Join to WPA encrypted IBSS not yet supported!\n");
+		free(cmdline);
+		return;
+	}
+	else {
+		free(cmdline);
 		return;
 	}
 
@@ -163,14 +162,13 @@ void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 int main(int argc, char *argv[]) {
 	int opt;
 	int task = 0;
-
 	char *ifname = "wlan0";
 	char *essid = "";
 	char *freq = "";
 	char *key = "";
 	char *passphrase = "";
-
 	uid_t uid=getuid();
+
 	if (uid != 0) {
 		puts("\nThis program needs to be run with root privileges!\n");
 		/* return 1; */
@@ -221,9 +219,10 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (task == 0 && essid[0] != '\0') {
+	if (task == 0 && essid[0] != '\0')
 		task = 4;
-	}
+	else if (task == 0 && freq[0] != '\0' )
+		task = 5;
 
 	if (task == 1) {
 		scan(ifname, 0);
