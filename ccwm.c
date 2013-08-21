@@ -151,38 +151,28 @@ void connect(char *ifname, char *ssid, char *freq, char *key, int type) {
 		system(cmdline);
 	}
 	else if (type == 5) {
-		puts("wpa ibss not yet supported. Here is wpa_supplicant config for you:");
+		FILE *fp;
+		char line[100];
 
-			FILE *fp;
-			char line[100];
+		snprintf(cmdline, 50, "wpa_passphrase %s %s", ssid, key);
+		fp = popen(cmdline, "r");
+		if (fp == NULL)
+			puts("error");
 
-			snprintf(cmdline, 50, "wpa_passphrase %s %s", ssid, key);
-			fp = popen(cmdline, "r");
-			if (fp == NULL)
-				puts("error");
+		char wpaarray[5][100];
+		int wpaline = 0;
+		while (fgets(line, 100, fp) != NULL) {
+			strcpy(wpaarray[wpaline], line);
+			wpaline++;
+		}
 
-			char wpaarray[5][100];
-			int wpaline = 0;
-			while (fgets(line, 100, fp) != NULL) {
-				strcpy(wpaarray[wpaline], line);
-				wpaline++;
-			}
+		pclose(fp);
 
-			pclose(fp);
+		char *wpaconf = malloc(1000);
+		snprintf(wpaconf, 1000, "wpa_supplicant -B -i %s -c <(echo -e \"ap_scan=2\n%s\ttmode=1\n\ttproto=WPA\n\tkey_mgmt=WPA-NONE\n\tpairwise=NONE\n\tgroup=TKIP\n%s%s%s}\")", ifname, wpaarray[0], wpaarray[1], wpaarray[2], wpaarray[3]);
 
-			char *wpaconf = malloc(1000);
-			snprintf(wpaconf, 1000, "ap_scan=2\n\
-%s\tmode=1\n\
-\tproto=WPA\n\
-\tkey_mgmt=WPA-NONE\n\
-\tpairwise=NONE\n\
-\tgroup=TKIP\n\
-%s%s%s}\n",
-			wpaarray[0], wpaarray[1], wpaarray[2], wpaarray[3]);
-
-		printf("%s", wpaconf);
-		free(cmdline);
-		return;
+		printf("\nUsing the following command:\n%s\n\n", wpaconf);
+		system(wpaconf);
 	}
 	else {
 		free(cmdline);
@@ -207,7 +197,7 @@ int main(int argc, char *argv[]) {
 	uid_t uid=getuid();
 
 	if (uid != 0) {
-		puts("\nThis program needs to be run with root privileges!\n");
+		puts("This program needs to be run with root privileges!\n");
 		/* return 1; */
 	}
 
