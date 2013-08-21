@@ -3,6 +3,7 @@ C CLI Wlan Manager
 ccwm allows you to easily connect to any wlan network.
 There is no need for configuration.
 Uses iproute2, iw, wpa_supplicant and dhcpcd.
+You can find ccwm ebuild from: https://github.com/defer-/my-projects
 
 
 Features
@@ -14,6 +15,10 @@ Features
 
 
 Changelog
+
+21.08.2013
+Generate config for wpa_supplicant when trying to join wpa ibss.
+Improved Makefile to support ebuilds better.
 
 06.08.2013
 Scan parsing re-written in C.

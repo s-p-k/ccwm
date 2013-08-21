@@ -36,6 +36,8 @@ void info(char *ifname) {
 	char *cmdline = malloc(43);
 	size_t s1 = strlen(ifname);
 
+	snprintf(cmdline, s1+18, "ip addr show dev %s", ifname);
+	system(cmdline);
 	snprintf(cmdline, s1+13, "iw dev %s info", ifname);
 	system(cmdline);
 	snprintf(cmdline, s1+13, "iw dev %s link", ifname);
@@ -104,15 +106,20 @@ void scan(char *ifname, int type) {
 	free(cmdline);
 }
 
-void connect(char *ifname, char *essid, char *freq, char *key, int type) {
+void connect(char *ifname, char *ssid, char *freq, char *key, int type) {
 	char *cmdline = malloc(100);
 	size_t s1 = strlen(ifname);
-	size_t s2 = strlen(essid);
+	size_t s2 = strlen(ssid);
 	size_t s3 = strlen(freq);
 	size_t s4 = strlen(key);
 
 	ifup(ifname);
 	system("killall dhcpcd 2> /dev/null");
+	system("killall wpa_supplicant 2> /dev/null");
+	snprintf(cmdline, s1+32, "iw dev %s disconnect 2> /dev/null", ifname);
+	system(cmdline);
+	snprintf(cmdline, s1+32, "iw dev %s ibss leave 2> /dev/null", ifname);
+	system(cmdline);
 
 	if (type < 3)
 		snprintf(cmdline, s1+25, "iw dev %s set type managed", ifname);
@@ -122,29 +129,58 @@ void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 	system(cmdline);
 
 	if (type == 0) {
-		snprintf(cmdline, s1+s2+20, "iw dev %s connect -w %s", ifname, essid);
+		snprintf(cmdline, s1+s2+20, "iw dev %s connect -w %s", ifname, ssid);
 		system(cmdline);
 	}
 	else if (type == 1) {
-		snprintf(cmdline, s1+s2+s4+26, "iw dev %s connect -w %s key %s", ifname, essid, key);
+		snprintf(cmdline, s1+s2+s4+26, "iw dev %s connect -w %s key %s", ifname, ssid, key);
 		system(cmdline);
 	}
 	else if (type == 2) {
 		snprintf(cmdline, s1+s2+s4+45, "wpa_supplicant -B -i %s -c <(wpa_passphrase %s %s)",
-				ifname, essid, key);
+				ifname, ssid, key);
 		system(cmdline);
 	}
 	else if (type == 3) {
-		snprintf(cmdline, s1+s2+s3+20, "iw dev %s ibss join %s %s", ifname, essid, freq);
+		snprintf(cmdline, s1+s2+s3+20, "iw dev %s ibss join %s %s", ifname, ssid, freq);
 		system(cmdline);
 	}
 	else if (type == 4) {
 		snprintf(cmdline, s1+s2+s3+s4+25, "iw dev %s ibss join %s %s key %s",
-				ifname, essid, freq, key);
+				ifname, ssid, freq, key);
 		system(cmdline);
 	}
 	else if (type == 5) {
-		printf("Join to WPA encrypted IBSS not yet supported!\n");
+		puts("wpa ibss not yet supported. Here is wpa_supplicant config for you:");
+
+			FILE *fp;
+			char line[100];
+
+			snprintf(cmdline, 50, "wpa_passphrase %s %s", ssid, key);
+			fp = popen(cmdline, "r");
+			if (fp == NULL)
+				puts("error");
+
+			char wpaarray[5][100];
+			int wpaline = 0;
+			while (fgets(line, 100, fp) != NULL) {
+				strcpy(wpaarray[wpaline], line);
+				wpaline++;
+			}
+
+			pclose(fp);
+
+			char *wpaconf = malloc(1000);
+			snprintf(wpaconf, 1000, "ap_scan=2\n\
+%s\tmode=1\n\
+\tproto=WPA\n\
+\tkey_mgmt=WPA-NONE\n\
+\tpairwise=NONE\n\
+\tgroup=TKIP\n\
+%s%s%s}\n",
+			wpaarray[0], wpaarray[1], wpaarray[2], wpaarray[3]);
+
+		printf("%s", wpaconf);
 		free(cmdline);
 		return;
 	}
@@ -153,6 +189,7 @@ void connect(char *ifname, char *essid, char *freq, char *key, int type) {
 		return;
 	}
 
+	sleep(1);
 	snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
 	system(cmdline);
 
@@ -163,7 +200,7 @@ int main(int argc, char *argv[]) {
 	int opt;
 	int task = 0;
 	char *ifname = "wlan0";
-	char *essid = "";
+	char *ssid = "";
 	char *freq = "";
 	char *key = "";
 	char *passphrase = "";
@@ -185,7 +222,7 @@ int main(int argc, char *argv[]) {
 				ifname = optarg;
 				break;
 			case 'e':
-				essid = optarg;
+				ssid = optarg;
 				break;
 			case 'f':
 				freq = optarg;
@@ -219,10 +256,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (task == 0 && essid[0] != '\0')
+	if (task == 0 && ssid[0] != '\0') {
 		task = 4;
-	else if (task == 0 && freq[0] != '\0' )
-		task = 5;
+		if (freq[0] != '\0' )
+			task = 5;
+	}
 
 	if (task == 1) {
 		scan(ifname, 0);
@@ -234,31 +272,31 @@ int main(int argc, char *argv[]) {
 		info(ifname);
 	}
 	else if (task == 4) {
-		if (essid[0] == '\0') {
+		if (ssid[0] == '\0') {
 			printf("You must specify ssid!\n");
 		}
 		else if (key[0] != '\0') {
-			connect(ifname, essid, freq, key, 1);
+			connect(ifname, ssid, freq, key, 1);
 		}
 		else if (passphrase[0] != '\0') {
-			connect(ifname, essid, freq, passphrase, 2);
+			connect(ifname, ssid, freq, passphrase, 2);
 		}
 		else {
-			connect(ifname, essid, freq, key, 0);
+			connect(ifname, ssid, freq, key, 0);
 		}
 	}
 	else if (task == 5) {
-		if (essid[0] == '\0' || freq[0] == '\0') {
+		if (ssid[0] == '\0' || freq[0] == '\0') {
 			printf("You must specify ssid and freq!\n");
 		}
 		else if (key[0] != '\0') {
-			connect(ifname, essid, freq, key, 4);
+			connect(ifname, ssid, freq, key, 4);
 		}
 		else if (passphrase[0] != '\0') {
-			connect(ifname, essid, freq, key, 5);
+			connect(ifname, ssid, freq, passphrase, 5);
 		}
 		else {
-			connect(ifname, essid, freq, key, 3);
+			connect(ifname, ssid, freq, key, 3);
 		}
 	}
 
