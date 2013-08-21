@@ -10,14 +10,14 @@ Features
 
 - Scan access points with nice output
 - Connect to ESS access point (Open/WEP/WPA)
-- Join to IBSS network (Open/WEP)
+- Join to IBSS network (Open/WEP/WPA)
 - Show interface info
 
 
 Changelog
 
 21.08.2013
-Generate config for wpa_supplicant when trying to join wpa ibss.
+Join to WPA encrypted IBSS.
 Improved Makefile to support ebuilds better.
 
 06.08.2013
@@ -32,4 +32,4 @@ Cleaned up command line options.
 Cleaned up code.
 
 03.08.2013
-First functional release.
+First release.
