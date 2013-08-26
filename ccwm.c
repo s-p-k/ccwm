@@ -19,6 +19,7 @@ void usage(char *progname) {
 	puts("-S              Scan access points verbosely");
 	puts("-I              Show interface info\n");
 
+	puts("-d              Disconnect");
 	puts("-c              Connect to ESS access point (default if ssid is set)");
 	puts("-j              Join to IBSS network (default if freq is set)");
 }
@@ -38,9 +39,9 @@ void info(char *ifname) {
 
 	snprintf(cmdline, s1+18, "ip addr show dev %s", ifname);
 	system(cmdline);
-	snprintf(cmdline, s1+13, "iw dev %s info", ifname);
-	system(cmdline);
 	snprintf(cmdline, s1+13, "iw dev %s link", ifname);
+	system(cmdline);
+	snprintf(cmdline, s1+13, "iw dev %s info", ifname);
 	system(cmdline);
 	snprintf(cmdline, s1+23, "iw dev %s get power_save", ifname);
 	system(cmdline);
@@ -103,6 +104,21 @@ void scan(char *ifname, int type) {
 		system(cmdline);
 	}
 
+	free(cmdline);
+}
+
+void disconnect(char *ifname) {
+	char *cmdline = malloc(53);
+	size_t s1 = strlen(ifname);
+
+	snprintf(cmdline, 28, "killall dhcpcd 2> /dev/null");
+	system(cmdline);
+	snprintf(cmdline, s1+36, "killall wpa_supplicant 2> /dev/null");
+	system(cmdline);
+	snprintf(cmdline, s1+52, "iw dev %s disconnect 2> /dev/null", ifname);
+	system(cmdline);
+	snprintf(cmdline, s1+52, "iw dev %s ibss leave 2> /dev/null", ifname);
+	system(cmdline);
 	free(cmdline);
 }
 
@@ -179,7 +195,6 @@ void connect(char *ifname, char *ssid, char *freq, char *key, int type) {
 		return;
 	}
 
-	sleep(1);
 	snprintf(cmdline, s1+8, "dhcpcd %s", ifname);
 	system(cmdline);
 
@@ -206,7 +221,7 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 
-	while ((opt = getopt(argc, argv, "sSIcjhi:e:f:w:W:")) != -1) {
+	while ((opt = getopt(argc, argv, "sSIdcjhi:e:f:w:W:")) != -1) {
 		switch (opt) {
 			case 'i':
 				ifname = optarg;
@@ -232,11 +247,14 @@ int main(int argc, char *argv[]) {
 			case 'I':
 				task = 3;
 				break;
-			case 'c':
+			case 'd':
 				task = 4;
 				break;
-			case 'j':
+			case 'c':
 				task = 5;
+				break;
+			case 'j':
+				task = 6;
 				break;
 			case 'h':
 			default:
@@ -247,9 +265,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (task == 0 && ssid[0] != '\0') {
-		task = 4;
+		task = 5;
 		if (freq[0] != '\0' )
-			task = 5;
+			task = 6;
 	}
 
 	if (task == 1) {
@@ -262,6 +280,9 @@ int main(int argc, char *argv[]) {
 		info(ifname);
 	}
 	else if (task == 4) {
+		disconnect(ifname);
+	}
+	else if (task == 5) {
 		if (ssid[0] == '\0') {
 			printf("You must specify ssid!\n");
 		}
@@ -275,7 +296,7 @@ int main(int argc, char *argv[]) {
 			connect(ifname, ssid, freq, key, 0);
 		}
 	}
-	else if (task == 5) {
+	else if (task == 6) {
 		if (ssid[0] == '\0' || freq[0] == '\0') {
 			printf("You must specify ssid and freq!\n");
 		}
