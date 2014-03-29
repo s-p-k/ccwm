@@ -218,7 +218,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc <= 1) {
 		usage(argv[0]);
-		return 0;
+		return 1;
 	}
 
 	while ((opt = getopt(argc, argv, "sSIdcjhi:e:f:w:W:")) != -1) {
@@ -257,10 +257,11 @@ int main(int argc, char *argv[]) {
 				task = 6;
 				break;
 			case 'h':
-			default:
 				usage(argv[0]);
 				return 0;
-				break;
+			default:
+				usage(argv[0]);
+				return 1;
 		}
 	}
 
