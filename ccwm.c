@@ -211,11 +211,6 @@ int main(int argc, char *argv[]) {
 	char *passphrase = "";
 	uid_t uid=getuid();
 
-	if (uid != 0) {
-		puts("This program needs to be run with root privileges!\n");
-		/* return 1; */
-	}
-
 	if (argc <= 1) {
 		usage(argv[0]);
 		return 1;
@@ -263,6 +258,11 @@ int main(int argc, char *argv[]) {
 				usage(argv[0]);
 				return 1;
 		}
+	}
+
+	if (uid != 0) {
+		puts("This program needs to be run with root privileges!\n");
+		return 1;
 	}
 
 	if (task == 0 && ssid[0] != '\0') {
