@@ -5,7 +5,7 @@ There is no need for configuration.
 Uses iproute2, iw, wpa_supplicant and dhcpcd.
 This tool is not yet well tested. Please report if you find any bugs.
 
-You can find ccwm ebuild from: https://github.com/defer-/my-projects
+Originally written from defer- : https://github.com/defer-
 
 
 Features
