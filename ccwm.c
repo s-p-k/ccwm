@@ -1,30 +1,19 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 
-void usage(char *progname) {
-	printf("Usage: %s [options]\n\n", progname);
-
-	puts("-h              Show help\n");
-
-	puts("-i [interface]  Set interface (default: wlan0)");
-	puts("-e [ssid]       Set SSID");
-	puts("-f [freq]       Set frequency");
-	puts("-w [key]        Set WEP key");
-	puts("-W [passphrase] Set WPA passphrase\n");
-
-	puts("-s              Scan access points");
-	puts("-S              Scan access points verbosely");
-	puts("-I              Show interface info\n");
-
-	puts("-d              Disconnect");
-	puts("-c              Connect to ESS access point (default if ssid is set)");
-	puts("-j              Join to IBSS network (default if freq is set)");
+void
+usage(char *progname)
+{
+	printf("Usage: %s [-h] [-i interface][-e ssid] [-f freq] [-w key]\n"
+        "              [-W passphrase] [-s] [-S] [-I] [-d] [-c] [-j]\n", progname);
 }
 
-void ifup(char *ifname) {
+void
+ifup(char *ifname)
+{
 	char *cmdline = malloc(36);
 	size_t s1 = strlen(ifname);
 
@@ -33,7 +22,9 @@ void ifup(char *ifname) {
 	free(cmdline);
 }
 
-void info(char *ifname) {
+void
+info(char *ifname)
+{
 	char *cmdline = malloc(43);
 	size_t s1 = strlen(ifname);
 
@@ -48,7 +39,9 @@ void info(char *ifname) {
 	free(cmdline);
 }
 
-void scan(char *ifname, int type) {
+void
+scan(char *ifname, int type)
+{
 	char *cmdline = malloc(33);
 	size_t s1 = strlen(ifname);
 	FILE *fp;
@@ -63,7 +56,7 @@ void scan(char *ifname, int type) {
 	if (type == 0) {
 		snprintf(cmdline, s1+13, "iw dev %s scan", ifname);
 		fp = popen(cmdline, "r");
-		if (fp == NULL)
+		if (!fp)
 			puts("error");
 
 		while (fgets(line, 100, fp) != NULL) {
@@ -107,7 +100,9 @@ void scan(char *ifname, int type) {
 	free(cmdline);
 }
 
-void disconnect(char *ifname) {
+void
+disconnect(char *ifname)
+{
 	char *cmdline = malloc(53);
 	size_t s1 = strlen(ifname);
 
@@ -122,7 +117,9 @@ void disconnect(char *ifname) {
 	free(cmdline);
 }
 
-void connect(char *ifname, char *ssid, char *freq, char *key, int type) {
+void
+connect(char *ifname, char *ssid, char *freq, char *key, int type)
+{
 	char *cmdline = malloc(100);
 	size_t s1 = strlen(ifname);
 	size_t s2 = strlen(ssid);
@@ -201,7 +198,9 @@ void connect(char *ifname, char *ssid, char *freq, char *key, int type) {
 	free(cmdline);
 }
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[])
+{
 	int opt;
 	int task = 0;
 	char *ifname = "wlan0";
@@ -213,7 +212,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc <= 1) {
 		usage(argv[0]);
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	while ((opt = getopt(argc, argv, "sSIdcjhi:e:f:w:W:")) != -1) {
@@ -253,16 +252,16 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'h':
 				usage(argv[0]);
-				return 0;
+				return EXIT_SUCCESS;
 			default:
 				usage(argv[0]);
-				return 1;
+				return EXIT_FAILURE;
 		}
 	}
 
 	if (uid != 0) {
 		puts("This program needs to be run with root privileges!\n");
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	if (task == 0 && ssid[0] != '\0') {
@@ -312,5 +311,5 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
