@@ -5,10 +5,10 @@
 #include <sys/types.h>
 
 void
-usage(char *progname)
+usage(void)
 {
-	printf("Usage: %s [-h] [-i interface][-e ssid] [-f freq] [-w key]\n"
-        "              [-W passphrase] [-s] [-S] [-I] [-d] [-c] [-j]\n", progname);
+	printf("Usage: [-h] [-i interface][-e ssid] [-f freq] [-w key]\n"
+        "              [-W passphrase] [-s] [-S] [-I] [-d] [-c] [-j]\n");
 }
 
 void
@@ -203,7 +203,7 @@ main(int argc, char *argv[])
 {
 	int opt;
 	int task = 0;
-	char *ifname = "wlan0";
+ 	char *ifname = "wls3";
 	char *ssid = "";
 	char *freq = "";
 	char *key = "";
@@ -211,7 +211,7 @@ main(int argc, char *argv[])
 	uid_t uid=getuid();
 
 	if (argc <= 1) {
-		usage(argv[0]);
+		usage();
 		return EXIT_FAILURE;
 	}
 
@@ -251,10 +251,10 @@ main(int argc, char *argv[])
 				task = 6;
 				break;
 			case 'h':
-				usage(argv[0]);
+				usage();
 				return EXIT_SUCCESS;
 			default:
-				usage(argv[0]);
+				usage();
 				return EXIT_FAILURE;
 		}
 	}
